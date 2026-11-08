@@ -1,0 +1,32 @@
+{
+  // VS Code 터미널 입출력 자동 기록 → ~/Code_W1_v1/logs/
+  // Remote-WSL로 연 경우: bash 터미널을 script 로 감싸 logs/wsl_날짜_PID.log 에 저장
+  // (IN_SCRIPT_LOG=1 로 ~/.bashrc 의 자동 로깅 블록과 중복 기록 방지)
+  "terminal.integrated.profiles.linux": {
+    "bash (logged)": {
+      "path": "bash",
+      "args": [
+        "-c",
+        "mkdir -p \"$0/logs\"; exec script -q -f \"$0/logs/wsl_$(date +%Y%m%d_%H%M%S)_$$.log\"",
+        "${workspaceFolder}"
+      ],
+      "env": { "IN_SCRIPT_LOG": "1" },
+      "icon": "record"
+    }
+  },
+  "terminal.integrated.defaultProfile.linux": "bash (logged)",
+
+  // Windows VS Code에서 \\wsl.localhost 경로로 연 경우: PowerShell 터미널을 logs/ps_날짜_PID.log 에 기록
+  "terminal.integrated.profiles.windows": {
+    "PowerShell (logged)": {
+      "source": "PowerShell",
+      "args": [
+        "-NoExit",
+        "-Command",
+        "$d='\\\\wsl.localhost\\Ubuntu\\home\\ckdals485583\\Code_W1_v1\\logs'; New-Item -ItemType Directory -Force $d | Out-Null; Start-Transcript -Path (Join-Path $d ('ps_{0}_{1}.log' -f (Get-Date -Format 'yyyyMMdd_HHmmss'), $PID)) -Append | Out-Null"
+      ],
+      "icon": "record"
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell (logged)"
+}
