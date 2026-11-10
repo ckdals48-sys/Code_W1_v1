@@ -356,6 +356,12 @@ CONTAINER ID   IMAGE           COMMAND                  CREATED         STATUS  
 **상태: ✅ 완료.**
 
 호스트의 `8080` 포트를 컨테이너의 `80` 포트로 매핑(`-p 8080:80`)하여 실행한 뒤, `curl`로 접속에 성공했다.
+<img width="1982" height="761" alt="image" src="https://github.com/user-attachments/assets/74513ef1-fe4c-4793-906b-d3ca7e576c49" />
+<img width="1574" height="463" alt="image" src="https://github.com/user-attachments/assets/df425147-4121-4ab8-aa00-534ce6c8496e" />
+<img width="1480" height="424" alt="image" src="https://github.com/user-attachments/assets/100b3f67-00e7-4c6f-8119-88e66759d1b1" />
+
+
+## 12. Docker 볼륨 영속성 검증
 
 ```bash
 $ docker run -d -p 8080:80 --name my-web mt-web:latest
@@ -522,3 +528,4 @@ fi
 - **원인 가설:** 줄바꿈 연속 문자(`\`) 뒤에 공백이 섞이거나 한 줄로 합쳐져 전달되면서, `-v` 옵션의 값이나 뒤에 와야 할 이미지 이름 인자가 깨진 채로 파싱되어 올바른 `IMAGE` 참조로 인식되지 못했다.
 - **확인:** 명령을 `\` 뒤에 공백 없이, 각 옵션을 줄바꿈으로 깔끔하게 분리해 다시 입력하자 정상적으로 컨테이너가 생성되었다(컨테이너 ID 반환, `docker ps`에 정상 등록).
 - **해결/대안:** 여러 줄로 나눠 입력하는 셸 명령은 `\` 직후 공백 없이 줄을 끝내고, 각 옵션을 한 줄에 하나씩 배치해 입력 실수를 줄인다. 확신이 서지 않으면 한 줄로 이어 붙여 실행해 보는 것도 대안이다.
+수정확인
