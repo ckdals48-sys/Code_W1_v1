@@ -60,9 +60,10 @@ git version 2.53.0
 | 컨테이너 | `hello-world` 실행 성공 | ✅ | [9번](#9-컨테이너-실행-실습) |
 | 컨테이너 | `ubuntu` 컨테이너 진입 후 `ls`/`echo` 수행 | ✅ | [9번](#9-컨테이너-실행-실습) |
 | 컨테이너 | attach/exec 차이 관찰·정리 | ✅ | [9번](#9-컨테이너-실행-실습) |
-| Dockerfile | 기존 베이스 기반 커스텀 이미지 빌드/실행 | 🟡 | [10번](#10-커스텀-이미지-제작-dockerfile-기반) — 정적 콘텐츠 작성 중, `docker build` 미실행 |
-| 포트 | 포트 매핑 + 브라우저/`curl` 접속 증거 | ⬜ | 10번 작업 완료 후 진행 예정 |
-| 볼륨 | 볼륨 생성/연결 + 컨테이너 삭제 전후 영속성 검증 | ⬜ | 미착수 |
+| Dockerfile | 기존 베이스 기반 커스텀 이미지 빌드/실행 | ✅ | [10번](#10-커스텀-이미지-제작-dockerfile-기반) — `nginx:alpine` 기반 커스텀 이미지(`mt-web`) 빌드·실행 완료 |
+| 포트 | 포트 매핑 + 브라우저/`curl` 접속 증거 | ✅ | [11번](#11-포트-매핑-및-접속-증거) — `-p 8080:80` 매핑 후 `curl` 접속 성공 |
+| 마운트 | 바인드 마운트 실행 + 호스트 변경 전/후 비교 | ✅ | [12-1번](#12-1-바인드-마운트-완료) — 호스트 파일 수정이 컨테이너에 즉시 반영됨을 확인 |
+| 볼륨 | 명명된(named) Docker 볼륨 생성/연결 + 컨테이너 삭제 전후 영속성 검증 | ⬜ | [12-2번](#12-2-docker-named-볼륨-영속성-미착수) — 미착수 (바인드 마운트와는 별개 항목) |
 | Git | `git config --list`, 기본 브랜치 설정 | 🟡 | [13번](#13-git-설정-및-github-연동) — user.name/email 미설정 확인됨 |
 | GitHub | 로그인/저장소 연동 + 증거(스크린샷) | 🟡 | 원격 연동(`git remote -v`)은 확인됨, 로그인 스크린샷 미첨부 |
 | 보안 | 민감정보 마스킹 점검 | ✅ | [14번](#14-보안-및-개인정보-보호) |
@@ -77,6 +78,8 @@ git version 2.53.0
 | Docker 설치/데몬 | `docker --version`, `docker info` | [logs/wsl_20261107_182821_2526.log](logs/wsl_20261107_182821_2526.log) |
 | Docker 운영 명령 | `docker images`, `docker pull`, `docker ps [-a]`, `docker logs`, `docker stats` | 동일 로그 |
 | 컨테이너 실습 | `docker run hello-world`, `docker run -it ubuntu bash`, `docker attach`, `docker exec` | 동일 로그 + [logs/wsl_20261107_185353_3114.log](logs/wsl_20261107_185353_3114.log) |
+| 커스텀 이미지 빌드/실행 | `docker build -t mt-web .`, `docker run -d -p 8080:80 --name my-web mt-web:latest`, `curl http://localhost:8080` | [logs/wsl_20261110_212846_514.log](logs/wsl_20261110_212846_514.log) (readable: [.readable.txt](logs/wsl_20261110_212846_514.readable.txt)) |
+| 바인드 마운트 영속성 | `docker run -v ~/.../bind-html:/usr/share/nginx/html`, 호스트 `index.html` 수정 후 `docker exec bind-web cat ...` | 동일 로그, 본 문서 [12-1번](#12-1-바인드-마운트-완료) |
 | Git/GitHub 연동 | `git status`, `git remote -v`, `git config --list` | 본 문서 13번 섹션 (직접 실행 결과) |
 
 가독성을 위해 터미널 제어 문자를 제거한 사본을 각 로그 파일명에 `.readable.txt` 접미사로 함께 두었다 (원본 `.log`가 1차 증거, `.readable.txt`는 열람용).
@@ -299,31 +302,122 @@ b4390b3f3d13   ubuntu   "bash"    7 minutes ago   Up 23 seconds             Test
 
 ## 10. 커스텀 이미지 제작 (Dockerfile 기반)
 
-**상태: 🟡 진행 중 — 아직 `docker build`/실행까지 완료되지 않음.**
+**상태: ✅ 완료 — 빌드/실행/접속까지 확인.**
 
-- 선택한 방식: **(A) 웹 서버 베이스 이미지 활용** — `nginx` 공식 이미지를 베이스로, 정적 콘텐츠(`index.html`)만 교체하는 방식으로 진행 중.
-- 커스텀 포인트(계획): `nginx` 기본 정적 페이지를 직접 작성한 `index.html`로 교체하여 "내가 만든 페이지가 컨테이너로 서빙되는 것"을 보여준다.
-- 현재까지 진행된 작업:
-  - 작업 디렉토리 `~/Code_W1_v1/Docker-Web/App` 생성
-  - `index.html` 초안 작성 (여러 차례 `heredoc` 입력 중 오타가 발생하여 재작성 중, 현재 내용은 완성본이 아님)
-  - `Dockerfile` 작성, `docker build`, 컨테이너 실행, 포트 매핑, 접속 확인은 **아직 수행하지 않음**
-- 참고: 이 작업은 WSL 홈 디렉토리 사본(`~/Code_W1_v1`, `cp -r /mnt/c/.../Code_W1_v1 ~/`로 만든 복사본)에서 진행되고 있어, **Git 저장소 경로(`/mnt/c/.../Code_W1_v1`)로 옮겨 커밋해야** 최종 제출물에 포함된다.
+- 선택한 방식: **(A) 웹 서버 베이스 이미지 활용** — `nginx:alpine` 공식 이미지를 베이스로, 정적 콘텐츠(`App/index.html`)만 교체.
+- 작업 위치: `~/Code_W1_v1/Docker-Web` (WSL 네이티브 경로), 정적 콘텐츠는 `Docker-Web/App/index.html`.
 
-**다음 단계(TODO):**
-1. `~/Code_W1_v1/Docker-Web/App/index.html` 내용을 깔끔하게 재작성
-2. 같은 위치(또는 저장소 경로)에 `nginx:alpine` 베이스의 `Dockerfile` 작성 (`COPY index.html /usr/share/nginx/html/index.html`)
-3. `docker build -t custom-nginx .` 로 빌드
-4. `docker run -d -p 8080:80 custom-nginx` 로 포트 매핑 실행
-5. `curl http://localhost:8080` 또는 브라우저 접속 화면을 캡처해 11번 섹션에 첨부
-6. 결과물을 저장소 경로로 옮기고 `git add/commit/push`
+최종 `Dockerfile`:
+
+```dockerfile
+FROM nginx:alpine
+LABEL org.opencontainers.image.title="Test Docker"
+ENV APP_ENV=dev
+COPY App/ /usr/share/nginx/html/
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s CMD wget -q -O /dev/null http://localhost/ || exit 1
+```
+
+커스텀 포인트별 목적:
+
+| 지시문 | 목적 |
+|---|---|
+| `FROM nginx:alpine` | 가볍고 검증된 웹 서버 베이스 이미지 재사용 |
+| `LABEL org.opencontainers.image.title` | 이미지 메타데이터에 식별용 제목 부여 |
+| `ENV APP_ENV=dev` | 환경 구분용 환경변수 주입 실습 |
+| `COPY App/ /usr/share/nginx/html/` | nginx 기본 정적 페이지를 직접 작성한 페이지로 교체 |
+| `EXPOSE 80` | 컨테이너가 서비스하는 포트를 문서화 |
+| `HEALTHCHECK` | 컨테이너 자체 헬스체크로 서비스 정상 동작 여부를 `docker ps`에서 바로 확인 |
+
+빌드/실행 명령 및 핵심 결과:
+
+```bash
+$ docker build -t mt-web .
+...
+ => [1/2] FROM docker.io/library/nginx:alpine@sha256:713fc2eb...   1.9s
+ => [2/2] COPY App/ /usr/share/nginx/html/                         0.0s
+ => exporting to image                                             0.5s
+ => => naming to docker.io/library/mt-web:latest                   0.0s
+
+$ docker run -d -p 8080:80 --name my-web mt-web:latest
+60f0e037ab980ce03c96e84751939e413209d258716a8543c6a1b7b56d7405cb
+
+$ docker ps
+CONTAINER ID   IMAGE           COMMAND                  CREATED         STATUS                            PORTS                                     NAMES
+60f0e037ab98   mt-web:latest   "/docker-entrypoint.…"   4 seconds ago   Up 4 seconds (health: starting)   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web
+```
+
+> 참고: 이미지 이름을 `my-web`으로 지으려 했으나 입력 과정에서 `mt-web`으로 오타가 났고, 빌드가 그 이름으로 성공해 이후 모든 명령에서 `mt-web`(이미지) / `my-web`(컨테이너 이름)을 일관되게 사용했다. 기능적으로는 문제가 없어 재빌드하지 않고 그대로 두었다 (관련 트러블슈팅: [16-2번](#16-2-이미지-이름-불일치로-인한-pull-access-denied)).
+
+전체 원문: [logs/wsl_20261110_212846_514.log](logs/wsl_20261110_212846_514.log) (readable: [.readable.txt](logs/wsl_20261110_212846_514.readable.txt))
 
 ## 11. 포트 매핑 및 접속 증거
 
-⬜ **미완료.** 10번 작업(커스텀 이미지 빌드/실행)이 끝난 뒤 `-p <host>:<container>` 매핑과 `curl`/브라우저 접속 화면을 이 섹션에 추가할 예정이다.
+**상태: ✅ 완료.**
 
-## 12. Docker 볼륨 영속성 검증
+호스트의 `8080` 포트를 컨테이너의 `80` 포트로 매핑(`-p 8080:80`)하여 실행한 뒤, `curl`로 접속에 성공했다.
 
-⬜ **미착수.** 다음 절차로 진행할 예정이다.
+```bash
+$ docker run -d -p 8080:80 --name my-web mt-web:latest
+60f0e037ab980ce03c96e84751939e413209d258716a8543c6a1b7b56d7405cb
+
+$ curl http://localhost:8080
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF=8">
+<title>Wet Test</title>
+</head>
+<body><h1>Web Test Code</h1></body>
+</html>
+```
+
+호스트 포트 매핑이 없었다면 컨테이너 내부의 80번 포트는 호스트에서 전혀 접근할 수 없으므로(컨테이너는 기본적으로 격리된 자체 네트워크 네임스페이스를 사용), `-p <host_port>:<container_port>`로 호스트 ↔ 컨테이너 포트를 연결해 주어야 브라우저/`curl` 등 호스트 쪽 클라이언트가 컨테이너가 제공하는 서비스에 접근할 수 있다. 실제로 매핑 전(컨테이너 미실행 상태)에는 `curl http://localhost:8080`이 `Failed to connect ... Could not connect to server`로 실패했고, 매핑 후에는 정상 응답했다.
+
+같은 호스트에서 서로 다른 포트(`8080`, `8081`)로 두 컨테이너(`my-web`, `bind-web`)를 동시에 띄워도 충돌 없이 각각 독립적으로 접속 가능함을 12번 섹션에서 함께 확인했다.
+
+전체 원문: [logs/wsl_20261110_212846_514.log](logs/wsl_20261110_212846_514.log)
+
+## 12. 바인드 마운트 / Docker 볼륨 영속성 검증
+
+### 12-1. 바인드 마운트 (완료)
+
+**상태: ✅ 완료.** 호스트 디렉토리를 컨테이너에 바인드 마운트하여, 호스트에서 파일을 수정하면 컨테이너 재시작 없이 즉시 반영됨을 확인했다.
+
+```bash
+$ mkdir bind-html && cd bind-html
+$ echo "<h1>Bind Mount Test v1</h1>" > index.html
+$ cat index.html
+<h1>Bind Mount Test v1</h1>
+
+$ docker run -d --name bind-web -p 8081:80 \
+  -v ~/Code_W1_v1/Docker-Web/bind-html:/usr/share/nginx/html \
+  nginx:latest
+34306eacbc35d4c89370319e631bd2cc82cd3daacb306fe30d273cf3ec547a3b
+
+$ docker ps
+CONTAINER ID   IMAGE           COMMAND                  CREATED          STATUS                    PORTS                                     NAMES
+34306eacbc35   nginx:latest    "/docker-entrypoint.…"   10 seconds ago   Up 9 seconds              0.0.0.0:8081->80/tcp, [::]:8081->80/tcp   bind-web
+60f0e037ab98   mt-web:latest   "/docker-entrypoint.…"   19 minutes ago   Up 19 minutes (healthy)   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   my-web
+
+# 변경 전 (호스트 = v1)
+$ curl http://localhost:8081
+<h1>Bind Mount Test v1</h1>
+
+# 호스트 파일을 v2로 수정 (컨테이너는 재시작하지 않음)
+$ echo "<h1>Bind Mount Test - v2</h1>" > index.html
+
+# 변경 후: 컨테이너 내부에서 바로 v2가 보임 (바인드 마운트이므로 호스트 파일을 그대로 참조)
+$ docker exec bind-web cat /usr/share/nginx/html/index.html
+<h1>Bind Mount Test - v2</h1>
+```
+
+**관찰 정리:** 바인드 마운트(`-v <호스트 경로>:<컨테이너 경로>`)는 호스트의 실제 파일시스템 경로를 컨테이너 내부에 그대로 연결하는 방식이라, 이미지를 다시 빌드하거나 컨테이너를 재시작하지 않아도 호스트에서의 수정이 컨테이너 쪽에 즉시 반영된다. 이는 Dockerfile의 `COPY`로 콘텐츠를 이미지에 "굽는" 방식(10번 섹션)과 대비되며, 개발 중 정적 파일을 수정하며 바로 확인하기에 유용하다.
+
+전체 원문: [logs/wsl_20261110_212846_514.log](logs/wsl_20261110_212846_514.log) (readable: [.readable.txt](logs/wsl_20261110_212846_514.readable.txt))
+
+### 12-2. Docker named 볼륨 영속성 (미착수)
+
+⬜ **미착수.** 바인드 마운트(12-1)와는 별개로, Docker가 관리하는 **명명된(named) 볼륨**을 생성해 컨테이너에 연결하고, **컨테이너를 삭제한 뒤에도 데이터가 남아있는지**를 검증하는 절차는 아직 수행하지 않았다. 다음 절차로 진행할 예정이다.
 
 ```bash
 # (예정) 볼륨 생성 및 연결
@@ -391,9 +485,40 @@ fi
 |---|---|
 | `wsl_manual_20261107_182732.log` | 자동 로깅 적용 "이전"에 열려 있던 세션을 사용자가 직접 붙여넣어 보존한 로그 (터미널 기본 조작 + 권한 실습 일부 포함) |
 | `wsl_20261107_182821_2526.log` | 자동 로깅 적용 후 첫 완결 세션 (Docker 설치 점검, 운영 명령, hello-world/ubuntu/nginx 컨테이너 실습) |
-| `wsl_20261107_185353_3114.log` | 커스텀 이미지(`Docker-Web/App`) 작업 중인 세션 (진행 중) |
+| `wsl_20261107_185353_3114.log` | 커스텀 이미지(`Docker-Web/App`) 작업 착수 세션 |
 | `perm_directory_test.log` | 디렉토리 권한 변경 실습 (전/후) |
+| `wsl_20261110_212846_514.log` | 커스텀 이미지 빌드/실행, 포트 매핑 접속, 바인드 마운트 실습을 완료한 세션 (10~12번 섹션의 근거) |
+| `wsl_20261110_212514_*.log`, `wsl_20261110_212820_*.log` | 위 세션 시작 직후 생성된 짧은 보조 로그(동일 터미널의 `pts` 분할로 생성되는 자동 로깅 메타 파일, 실질적 명령 내용은 `wsl_20261110_212846_514.log`에 기록됨) |
 | `*.readable.txt` | 위 `.log` 파일에서 터미널 제어 문자를 제거한 열람용 사본 |
 
 각 `.log`는 `script`의 표준 typescript 형식이며 터미널 제어 시퀀스(커서 이동, 색상 등)가 포함되어 있어 GitHub에서 그대로 보면 다소 지저분하게 보일 수 있다 — 이 경우 같은 이름의 `.readable.txt`를 참고할 것.
-수정확인
+
+## 16. 트러블슈팅
+
+### 16-1. DrvFs(`/mnt/c/...`) 경로에서 `chmod`가 반영되지 않음
+
+- **문제:** `/mnt/c/Users/.../TEST.txt`에서 `chmod 644`를 실행했지만 `ls -l` 결과 권한이 `-rwxrwxrwx`에서 전혀 바뀌지 않았다.
+- **원인 가설:** Windows 드라이브를 마운트한 `/mnt/c/...` 경로는 WSL의 DrvFs 드라이버를 통해 노출되는데, DrvFs는 NTFS 권한을 유닉스 권한 비트로 완전히 매핑하지 않고 기본적으로 모든 파일을 `777`처럼 보여주는 것으로 알려져 있다.
+- **확인:** 동일한 실험(`touch` → `chmod 755`)을 WSL 네이티브 파일시스템(`~`, ext4)에서 반복하자 `644 → 755` 변경이 `ls -l`에 정상적으로 반영되었다 ([6-1번](#6-1-파일-권한-변경-mntc-경로-vs-네이티브-linux-경로) 참고).
+- **해결/대안:** 권한 제어가 중요한 실습·배포 파일은 `/mnt/c/...`가 아닌 WSL 네이티브 경로(`~` 등, ext4)에 둔다. Windows 쪽에서 직접 편집해야 하는 파일만 `/mnt/c/...`에 두고, 그런 파일에는 유닉스 권한 제어를 기대하지 않는다.
+
+### 16-2. 이미지 이름 불일치로 인한 "pull access denied"
+
+- **문제:** `docker run -d -p 8080:80 --name webtest my-nginx` 및 이후 `... my-web`을 실행했을 때 둘 다 `Unable to find image 'xxx:latest' locally` → `pull access denied for xxx, repository does not exist` 오류가 발생했다.
+- **원인 가설:** 로컬에 해당 이름의 이미지가 없으면 Docker는 이를 "Docker Hub에서 받아와야 할 원격 이미지"로 간주해 `pull`을 시도한다. 그런데 실제로 빌드에 성공한 이미지의 이름은 오타로 인해 `mt-web`이었고, 요청한 이름(`my-nginx`, `my-web`)과 달라 로컬에서 찾지 못한 것이었다.
+- **확인:** `docker images`로 로컬 이미지 목록을 확인하자 `mt-web:latest`만 존재하고 `my-web`/`my-nginx`는 없음을 확인했다.
+- **해결/대안:** `docker run ... mt-web:latest`로 실제 빌드된 이미지 이름을 정확히 지정하여 실행에 성공했다(10·11번 섹션). 일반화하면, "로컬 이미지만 쓰려는 의도인데 pull을 시도한다"는 오류가 보이면 가장 먼저 `docker images`로 이름/태그 오타를 의심해야 한다는 교훈을 얻었다.
+
+### 16-3. `Dockerfile`의 `COPY` 경로 대소문자 불일치로 빌드 실패
+
+- **문제:** `docker build -t my-web .` 실행 시 `COPY app/ /usr/share/nginx/html/` 단계에서 `failed to calculate checksum ... "/app": not found` 오류로 빌드가 실패했다.
+- **원인 가설:** Linux 파일시스템은 대소문자를 구분하는데, 실제 디렉토리 이름은 `App`(대문자 A)이고 `Dockerfile`에는 `app`(소문자)으로 적혀 있어 경로가 일치하지 않았다.
+- **확인:** `ls -al`로 실제 디렉토리명이 `App`임을 재확인했다.
+- **해결/대안:** `Dockerfile`의 `COPY` 경로를 실제 대소문자에 맞춰 `COPY App/ /usr/share/nginx/html/`로 수정한 뒤 재빌드하여 성공했다 (`docker build -t mt-web .`).
+
+### 16-4. 멀티라인 `docker run` 명령에서 "invalid reference format"
+
+- **문제:** 바인드 마운트 컨테이너를 실행할 때 `-p 8081:80 \ -v ...` 형태로 입력했는데 `docker: invalid reference format` 오류가 발생했다.
+- **원인 가설:** 줄바꿈 연속 문자(`\`) 뒤에 공백이 섞이거나 한 줄로 합쳐져 전달되면서, `-v` 옵션의 값이나 뒤에 와야 할 이미지 이름 인자가 깨진 채로 파싱되어 올바른 `IMAGE` 참조로 인식되지 못했다.
+- **확인:** 명령을 `\` 뒤에 공백 없이, 각 옵션을 줄바꿈으로 깔끔하게 분리해 다시 입력하자 정상적으로 컨테이너가 생성되었다(컨테이너 ID 반환, `docker ps`에 정상 등록).
+- **해결/대안:** 여러 줄로 나눠 입력하는 셸 명령은 `\` 직후 공백 없이 줄을 끝내고, 각 옵션을 한 줄에 하나씩 배치해 입력 실수를 줄인다. 확신이 서지 않으면 한 줄로 이어 붙여 실행해 보는 것도 대안이다.
