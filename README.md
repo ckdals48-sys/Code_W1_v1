@@ -321,6 +321,9 @@ b4390b3f3d13   ubuntu   "bash"    7 minutes ago   Up 23 seconds             Test
 
 ⬜ **미완료.** 10번 작업(커스텀 이미지 빌드/실행)이 끝난 뒤 `-p <host>:<container>` 매핑과 `curl`/브라우저 접속 화면을 이 섹션에 추가할 예정이다.
 
+<img width="1982" height="761" alt="image" src="https://github.com/user-attachments/assets/74513ef1-fe4c-4793-906b-d3ca7e576c49" />
+
+
 ## 12. Docker 볼륨 영속성 검증
 
 ⬜ **미착수.** 다음 절차로 진행할 예정이다.
