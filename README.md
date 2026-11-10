@@ -323,6 +323,7 @@ b4390b3f3d13   ubuntu   "bash"    7 minutes ago   Up 23 seconds             Test
 
 <img width="1982" height="761" alt="image" src="https://github.com/user-attachments/assets/74513ef1-fe4c-4793-906b-d3ca7e576c49" />
 <img width="1574" height="463" alt="image" src="https://github.com/user-attachments/assets/df425147-4121-4ab8-aa00-534ce6c8496e" />
+<img width="1480" height="424" alt="image" src="https://github.com/user-attachments/assets/100b3f67-00e7-4c6f-8119-88e66759d1b1" />
 
 
 ## 12. Docker 볼륨 영속성 검증
